@@ -3,7 +3,7 @@
 import pygame
 
 # Инициализация PyGame:
-pygame.init()
+
 
 # Константы для размеров поля и сетки:
 SCREEN_WIDTH, SCREEN_HEIGHT = 640, 480
@@ -30,7 +30,7 @@ APPLE_COLOR = (255, 0, 0)
 SNAKE_COLOR = (0, 255, 0)
 
 # Скорость движения змейки:
-SPEED = 20
+SPEED = 10
 
 # Настройка игрового окна:
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), 0, 32)
@@ -46,29 +46,48 @@ clock = pygame.time.Clock()
 class GameObject:
 
     def __init__(self) -> None:
-        pass
+        self.position = ...
+        self.body_color = ...
 
     def draw(self):
-        pass
+        print(self.position)
+        print()
+        rect = pygame.Rect(self.position, (GRID_SIZE, GRID_SIZE))
+        pygame.draw.rect(screen, self.body_color, rect)
+        pygame.draw.rect(screen, BORDER_COLOR, rect, 1)
 
 class Apple(GameObject):
 
     def __init__(self) -> None:
         super().__init__()
+        self.position = self.rand_position()
+        self.body_color = APPLE_COLOR
 
-    def draw(self): ... # рисует змейку в данный момент на доске
+    #def draw(self): ... # рисует Яблоко в данный момент на доске
 
-    def rand_position(self): ... #Создаёт новую позицию для яблока (если скушан фрукт)
+    def rand_position(self): 
+
+        print('Randoming apple...')
+        _x = randint(0, GRID_WIDTH)*GRID_SIZE
+        _y = randint(0, GRID_HEIGHT)*GRID_SIZE
+        
+        return (_x, _y) #Создаёт новую позицию для яблока (если скушан фрукт)
 
 class Snake(GameObject):
 
     def __init__(self) -> None:
         super().__init__()
+        self.position = (0, 0)
+        self.snake_body = ((0, 1), (0, 2), (0, 3))
+        self.body_color = SNAKE_COLOR
+        self.direction = RIGHT
+        self.next_direction = RIGHT
+    
+    #def draw(self): ... # рисует змейку в данный момент на доске
 
-    def draw(self): ... # рисует змейку в данный момент на доске
-
-    def move(self): ... # изменяет положение змейки на 1 по направлению движения
-
+    def move(self): 
+        self.position = ((self.position[0] + self.direction[0]*GRID_SIZE), (self.position[1] + self.direction[1]*GRID_SIZE)) # изменяет положение змейки на 1 по направлению движения
+        self.direction = self.next_direction
     def eat(self): ... # если позиция головы змейки совпадает с позицией еды - увеличивается на 1 тайл
 
     def die(self): ... # Если змейка достигает есть себя (self_collision) - игра окончена
@@ -99,21 +118,24 @@ class Snake(GameObject):
 
 
 def main():
+    pygame.init()
 
     snake = Snake()
     apple = Apple()
     
-    ...
+    #screen.fill((0, 255, 0)) 
+    #pygame.display.flip()
 
     while True:
         clock.tick(SPEED)
 
         snake.draw()
         apple.draw()
-
+        
+        snake.move()
         snake.handle_keys()
 
-        pygame.display.update()
+        pygame.display.flip()
 
 
 if __name__ == '__main__':
