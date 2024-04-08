@@ -203,15 +203,6 @@ def main():
     snake = Snake()
     apple = Apple()
 
-    def game_update():
-        """Обрабатываем обновление игрового события"""
-        snake.update_direction()
-        snake.move()
-        apple_collision(snake, apple)
-        self_collision(snake)
-        wall_collision(snake)
-        auto_dificult()
-
     SCORE_FONT = pygame.font.Font(None, 20)
 
     while True:
@@ -219,7 +210,12 @@ def main():
 
         for event in pygame.event.get():
             if event.type == GAME_EVENT:
-                game_update()
+                snake.update_direction()
+                snake.move()
+                apple_collision(snake, apple)
+                self_collision(snake)
+                wall_collision(snake)
+                auto_dificult()
 
             handle_keys(snake, event)
 
