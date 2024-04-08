@@ -1,4 +1,5 @@
 ﻿from random import choice, randint
+from typing import Tuple
 
 import pygame
 
@@ -29,7 +30,7 @@ APPLE_COLOR = (255, 0, 0)
 # Цвет змейки
 SNAKE_COLOR = (0, 255, 0)
 
-# Скорость движения змейки:
+# Частота обновления кадров:
 SPEED = 10
 
 # Настройка игрового окна:
@@ -41,6 +42,9 @@ pygame.display.set_caption('Змейка')
 # Настройка времени:
 clock = pygame.time.Clock()
 
+# Настройка игрового события - обновлять каждые 200 мс
+GAME_EVENT = pygame.USEREVENT
+pygame.time.set_timer(GAME_EVENT, 200) #скорость обновления игровых событий 500\1000 
 
 # Тут опишите все классы игры.
 class GameObject:
@@ -50,11 +54,14 @@ class GameObject:
         self.body_color = ...
 
     def draw(self):
-        print(self.position)
-        print()
-        rect = pygame.Rect(self.position, (GRID_SIZE, GRID_SIZE))
+        rect = pygame.Rect(self.formating_coord(self.position), (GRID_SIZE, GRID_SIZE))
         pygame.draw.rect(screen, self.body_color, rect)
         pygame.draw.rect(screen, BORDER_COLOR, rect, 1)
+
+    @staticmethod
+    def formating_coord(coordinate: Tuple[int, int]) -> Tuple[int, int]:
+        return (coordinate[0]*GRID_SIZE, coordinate[1]*GRID_SIZE)
+    
 
 class Apple(GameObject):
 
@@ -68,8 +75,9 @@ class Apple(GameObject):
     def rand_position(self): 
 
         print('Randoming apple...')
-        _x = randint(0, GRID_WIDTH)*GRID_SIZE
-        _y = randint(0, GRID_HEIGHT)*GRID_SIZE
+
+        _x = randint(0, GRID_WIDTH-1)
+        _y = randint(0, GRID_HEIGHT-1)
         
         return (_x, _y) #Создаёт новую позицию для яблока (если скушан фрукт)
 
@@ -77,66 +85,102 @@ class Snake(GameObject):
 
     def __init__(self) -> None:
         super().__init__()
-        self.position = (0, 0)
-        self.snake_body = ((0, 1), (0, 2), (0, 3))
+        self.positions = [(0, 0)]
         self.body_color = SNAKE_COLOR
         self.direction = RIGHT
-        self.next_direction = RIGHT
+        self.check_eated = False
     
-    #def draw(self): ... # рисует змейку в данный момент на доске
+    def draw(self):  # рисует змейку в данный момент на доске
+        for tile in self.positions:
+            rect = (pygame.Rect(self.formating_coord(tile), (GRID_SIZE, GRID_SIZE)))
+            pygame.draw.rect(screen, self.body_color, rect)
+            pygame.draw.rect(screen, BORDER_COLOR, rect, 1)
 
-    def move(self): 
-        self.position = ((self.position[0] + self.direction[0]*GRID_SIZE), (self.position[1] + self.direction[1]*GRID_SIZE)) # изменяет положение змейки на 1 по направлению движения
-        self.direction = self.next_direction
-    def eat(self): ... # если позиция головы змейки совпадает с позицией еды - увеличивается на 1 тайл
 
-    def die(self): ... # Если змейка достигает есть себя (self_collision) - игра окончена
+    def move(self):  # изменяет положение змейки на 1 по направлению движения
+        self.positions.insert(0, (self.positions[0][0] + self.direction[0],
+                                    self.positions[0][1] + self.direction[1]))
+        if self.check_eated:
+            self.check_eated = False
+        else: 
+            self.positions.pop()
+
+
     
-    def wall_collision(self): ... # Проверка если тайд змейки вышел за границу поля -> отразить её с другой стороны
+    
+class GameLogic:
+    
+    '''Класс содержит логику игры и работает с классами Snake и Apple'''
+    def __init__(self) -> None:
+        self.snake = Snake()
+        self.apple = Apple()
 
-    def self_collision(self): ... #Проверка если голова змейки == тайл змейки = смерть
+    #затираем экран и заново отрисовываем всё поле
+    def draw(self):
+        
+        print(f'{self.snake.positions} - {self.apple.position}')
 
-    def handle_keys(game_object): # Функция обработки действий пользователя
+        screen.fill(BOARD_BACKGROUND_COLOR)
+        self.snake.draw()
+        self.apple.draw()
+
+    def game_event(self):
+        self.check_eat()
+        self.snake.move()
+        
+
+    # если позиция головы змейки совпадает с позицией еды - увеличивается на 1 тайл
+    def check_eat(self):  
+        if self.snake.positions[0] == self.apple.position:
+            self.snake.check_eaten = True
+            self.apple.position = self.apple.rand_position()
+
+    # Проверка если тайд змейки вышел за границу поля -> отразить её с другой стороны
+    def wall_collision(self): ... 
+    
+    #Проверка если голова змейки == любой тайл змейки = смерть
+    def self_collision(self): 
+        if self.snake.positions[0] in self.snake.positions[1:]:
+            self.game_over()
+
+    # Если self_collision Сообщение о конце игры
+    def game_over(self): 
+        print(f"Игра окончена")
+        
+    
+    def handle_keys(self): # Функция обработки действий пользователя
         for event in pygame.event.get():
+            if event.type == GAME_EVENT:
+                self.game_event()
+                
             if event.type == pygame.QUIT:
                 pygame.quit()
                 raise SystemExit
             elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_UP and game_object.direction != DOWN:
-                    game_object.next_direction = UP
-                elif event.key == pygame.K_DOWN and game_object.direction != UP:
-                    game_object.next_direction = DOWN
-                elif event.key == pygame.K_LEFT and game_object.direction != RIGHT:
-                    game_object.next_direction = LEFT
-                elif event.key == pygame.K_RIGHT and game_object.direction != LEFT:
-                    game_object.next_direction = RIGHT
-
-    def update_direction(self): # Метод обновления направления после нажатия на кнопку
-        if self.next_direction:
-            self.direction = self.next_direction
-            self.next_direction = None
-
+                if event.key == pygame.K_UP and self.snake.direction != DOWN:
+                    self.snake.direction = UP
+                elif event.key == pygame.K_DOWN and self.snake.direction != UP:
+                    self.snake.direction = DOWN
+                elif event.key == pygame.K_LEFT and self.snake.direction != RIGHT:
+                    self.snake.direction = LEFT
+                elif event.key == pygame.K_RIGHT and self.snake.direction != LEFT:
+                    self.snake.direction = RIGHT
+                
+                elif event.key == pygame.K_ESCAPE:
+                    pygame.event.post(pygame.event.Event(pygame.QUIT))
 
 def main():
     pygame.init()
-
-    snake = Snake()
-    apple = Apple()
-    
-    #screen.fill((0, 255, 0)) 
-    #pygame.display.flip()
+    game = GameLogic()
 
     while True:
         clock.tick(SPEED)
+        screen.fill(BOARD_BACKGROUND_COLOR)
 
-        snake.draw()
-        apple.draw()
+        game.draw()
+        game.handle_keys()
         
-        snake.move()
-        snake.handle_keys()
-
-        pygame.display.flip()
-
+        pygame.display.update()
 
 if __name__ == '__main__':
     main()
