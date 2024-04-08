@@ -1,16 +1,14 @@
-﻿from random import choice, randint
+﻿from random import randint
 from typing import Tuple
 
 import pygame
 
-# Инициализация PyGame:
-
-
 # Константы для размеров поля и сетки:
-SCREEN_WIDTH, SCREEN_HEIGHT = 640, 480
-GRID_SIZE = 20
-GRID_WIDTH = SCREEN_WIDTH // GRID_SIZE
-GRID_HEIGHT = SCREEN_HEIGHT // GRID_SIZE
+BORDER = 20 
+SCREEN_WIDTH, SCREEN_HEIGHT = 640, 480 #Длина и ширина игрового поля
+GRID_SIZE = 20 #Размер ячейки
+GRID_WIDTH = SCREEN_WIDTH // GRID_SIZE #Количество ячеек по горизонтали
+GRID_HEIGHT = SCREEN_HEIGHT // GRID_SIZE #Количество ячеек по вертикали
 
 # Направления движения:
 UP = (0, -1)
@@ -18,33 +16,25 @@ DOWN = (0, 1)
 LEFT = (-1, 0)
 RIGHT = (1, 0)
 
-# Цвет фона - черный:
-BOARD_BACKGROUND_COLOR = (0, 0, 0)
+#Цветовая схема
+BOARD_BACKGROUND_COLOR = (0, 0, 0) # Цвет фона - черный:
+BORDER_COLOR = (93, 216, 228) # Цвет границы ячейки
+APPLE_COLOR = (255, 0, 0) # Цвет яблока
+SNAKE_COLOR = (0, 255, 0) # Цвет змейки
 
-# Цвет границы ячейки
-BORDER_COLOR = (93, 216, 228)
 
-# Цвет яблока
-APPLE_COLOR = (255, 0, 0)
-
-# Цвет змейки
-SNAKE_COLOR = (0, 255, 0)
-
-# Частота обновления кадров:
-SPEED = 10
 
 # Настройка игрового окна:
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), 0, 32)
-
-# Заголовок окна игрового поля:
-pygame.display.set_caption('Змейка')
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), 0, 32) #Настрйока экрана
+pygame.display.set_caption('Змейка') # Заголовок окна игрового окна:
 
 # Настройка времени:
 clock = pygame.time.Clock()
+SPEED = 10 # Частота обновления кадров:
 
 # Настройка игрового события - обновлять каждые 200 мс
-GAME_EVENT = pygame.USEREVENT
-pygame.time.set_timer(GAME_EVENT, 200) #скорость обновления игровых событий 500\1000 
+GAME_EVENT = pygame.USEREVENT #создание пользовательского типа события (обновление поля)
+pygame.time.set_timer(GAME_EVENT, 200) #скорость обновления игровых событий - 5 раз\сек
 
 # Тут опишите все классы игры.
 class GameObject:
@@ -70,8 +60,6 @@ class Apple(GameObject):
         self.position = self.rand_position()
         self.body_color = APPLE_COLOR
 
-    #def draw(self): ... # рисует Яблоко в данный момент на доске
-
     def rand_position(self): 
 
         print('Randoming apple...')
@@ -85,7 +73,7 @@ class Snake(GameObject):
 
     def __init__(self) -> None:
         super().__init__()
-        self.positions = [(0, 0)]
+        self.positions = [(4, 0), (3, 0), (2, 0), (1, 0), (0, 0),]
         self.body_color = SNAKE_COLOR
         self.direction = RIGHT
         self.check_eated = False
@@ -97,7 +85,7 @@ class Snake(GameObject):
             pygame.draw.rect(screen, BORDER_COLOR, rect, 1)
 
 
-    def move(self):  # изменяет положение змейки на 1 по направлению движения
+    def snake_step(self):  # изменяет положение змейки на 1 по направлению движения
         self.positions.insert(0, (self.positions[0][0] + self.direction[0],
                                     self.positions[0][1] + self.direction[1]))
         if self.check_eated:
@@ -126,17 +114,28 @@ class GameLogic:
 
     def game_event(self):
         self.check_eat()
-        self.snake.move()
+        self.snake.snake_step()
+        self.self_collision()
+        self.wall_collision()
         
 
     # если позиция головы змейки совпадает с позицией еды - увеличивается на 1 тайл
     def check_eat(self):  
         if self.snake.positions[0] == self.apple.position:
-            self.snake.check_eaten = True
             self.apple.position = self.apple.rand_position()
+            self.snake.check_eated = True
 
-    # Проверка если тайд змейки вышел за границу поля -> отразить её с другой стороны
-    def wall_collision(self): ... 
+    # Описание поведения при выходе за границу игрового поля
+    def wall_collision(self): 
+        for index, position in enumerate(self.snake.positions):
+            if position[0] > GRID_WIDTH: # x, y x>32 = (0, y)
+                self.snake.positions[index] = (0, position[1])
+            if position[0] < 0: # x, y x<0 = (32, y)
+                self.snake.positions[index] = (GRID_WIDTH, position[1])
+            if position[1] > GRID_HEIGHT:
+                self.snake.positions[index] = (position[0], 0) 
+            if position[1] < 0:
+                self.snake.positions[index] = ((position[0], GRID_HEIGHT)) 
     
     #Проверка если голова змейки == любой тайл змейки = смерть
     def self_collision(self): 
@@ -146,6 +145,7 @@ class GameLogic:
     # Если self_collision Сообщение о конце игры
     def game_over(self): 
         print(f"Игра окончена")
+        pygame.event.post(pygame.event.Event(pygame.QUIT))
         
     
     def handle_keys(self): # Функция обработки действий пользователя
