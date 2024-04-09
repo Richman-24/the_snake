@@ -140,6 +140,7 @@ class Snake(GameObject):
         """Обновляет состояние змейки после фейла"""
         self.positions = [(GRID_WIDTH // 2, GRID_HEIGHT // 2)]
         self.direction = RIGHT
+        screen.fill(BOARD_BACKGROUND_COLOR)
 
     def update_direction(self):
         """Обновляет направление движения"""
@@ -159,7 +160,7 @@ class Snake(GameObject):
         """Проверка если голова змейки ест сама себя"""
         if self.positions[0] in self.positions[1:]:
             self.reset()
-            super().SCORE = 0
+            GameObject.SCORE = 0
             pygame.time.set_timer(GAME_EVENT, 200)
 
 
