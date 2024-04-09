@@ -37,16 +37,15 @@ pygame.time.set_timer(
     GAME_EVENT, 200
 )  # скорость обновления игровых событий - 5 раз\сек
 
-SCORE = 0  # Счётчик отчков, вличяет на сложность
-
 
 class GameObject:
     """Класс определяет игровые сущности"""
 
+    SCORE = 0
+
     def __init__(self) -> None:
-        self.position = (0, 0)
-        self.body_color = (255, 255, 255)
-        self.SCORE = 0
+        self.position = self.randomize_position()
+        self.body_color = APPLE_COLOR
 
     def draw(self):
         """Рисует игровую сущность"""
@@ -57,22 +56,31 @@ class GameObject:
         """Переводит координаты из формата абсолютного в формат ячеек"""
         return (coordinate[0] * GRID_SIZE, coordinate[1] * GRID_SIZE)
 
+    @staticmethod
+    def randomize_position():  # Можно же создавать не только яблоко
+        """Создаёт новую случайную позицию для клетки на карте"""
+        _x = randint(0, GRID_WIDTH - 1)
+        _y = randint(0, GRID_HEIGHT - 1)
+
+        return (_x, _y)
+
+    @classmethod
+    def auto_dificult(cls):
+        """Меняет сложность в зависимости от набранных очков"""
+        global SCORE
+        if cls.SCORE >= 150:
+            pygame.time.set_timer(GAME_EVENT, 25)
+        elif cls.SCORE >= 100:
+            pygame.time.set_timer(GAME_EVENT, 50)
+        elif cls.SCORE >= 50:
+            pygame.time.set_timer(GAME_EVENT, 100)
+
 
 class Apple(GameObject):
     """Класс определяет поведение яблока"""
 
     def __init__(self) -> None:
         super().__init__()
-        # self.snake = snake
-        self.position = self.randomize_position()
-        self.body_color = APPLE_COLOR
-
-    def randomize_position(self):
-        """Создаёт новую случайную позицию для яблока (если скушан фрукт)"""
-        _x = randint(0, GRID_WIDTH - 1)
-        _y = randint(0, GRID_HEIGHT - 1)
-
-        return (_x, _y)
 
     def draw(self):
         """Рисует яблоко на доске"""
@@ -93,6 +101,7 @@ class Snake(GameObject):
         self.direction = RIGHT
         self.check_eated = False
         self.next_direction = None
+        self.last = (0, 0)
 
     def draw(self):
         """рисует змейку в данный момент на доске"""
@@ -103,22 +112,28 @@ class Snake(GameObject):
             pygame.draw.rect(screen, self.body_color, rect)
             pygame.draw.rect(screen, BORDER_COLOR, rect, 1)
 
+        if self.last:
+            last_rect = pygame.Rect(self.last, (GRID_SIZE, GRID_SIZE))
+            pygame.draw.rect(screen, BOARD_BACKGROUND_COLOR, last_rect)
+
     def move(self):
         """изменяет положение змейки на 1 по направлению движения"""
         self.positions.insert(
             0,
             (
-                self.positions[0][0] + self.direction[0],
-                self.positions[0][1] + self.direction[1],
+                (self.positions[0][0] + self.direction[0]) % GRID_WIDTH,
+                (self.positions[0][1] + self.direction[1]) % GRID_HEIGHT,
             ),
         )
         if self.check_eated:
             self.check_eated = False
         else:
-            self.positions.pop()
+            self.last = self.formating_coord(
+                self.positions.pop()
+            )
 
     def get_head_position(self):
-        """возвращает позицию головы змеи"""
+        """Возвращает позицию головы змеи"""
         return self.positions[0]
 
     def reset(self):
@@ -132,69 +147,41 @@ class Snake(GameObject):
             self.direction = self.next_direction
             self.next_direction = None
 
+    def apple_collision(self, apple):
+        """определяет поведение при совпадении головы змеи и яблока"""
+        global SCORE
+        if self.positions[0] == apple.position:
+            while apple.position in self.positions:
+                apple.position = apple.randomize_position()
+            self.check_eated = True
+            GameObject.SCORE += 10
+
+    def self_collision(self):
+        """Проверка если голова змейки ест сама себя"""
+        global SCORE
+        if self.positions[0] in self.positions[1:]:
+            self.reset()
+            SCORE = 0
+            pygame.time.set_timer(GAME_EVENT, 200)
+
 
 def handle_keys(snake, event):
     """Определяет реакцию на нажатие клавиш"""
+    binded_keys = {
+        pygame.K_UP: UP if snake.direction != DOWN else DOWN,
+        pygame.K_DOWN: DOWN if snake.direction != UP else UP,
+        pygame.K_RIGHT: RIGHT if snake.direction != LEFT else LEFT,
+        pygame.K_LEFT: LEFT if snake.direction != RIGHT else RIGHT,
+    }
+
     if event.type == pygame.QUIT:
         pygame.quit()
         raise SystemExit
 
     elif event.type == pygame.KEYDOWN:
-        if event.key == pygame.K_UP and snake.direction != DOWN:
-            snake.next_direction = UP
-        elif event.key == pygame.K_DOWN and snake.direction != UP:
-            snake.next_direction = DOWN
-        elif event.key == pygame.K_LEFT and snake.direction != RIGHT:
-            snake.next_direction = LEFT
-        elif event.key == pygame.K_RIGHT and snake.direction != LEFT:
-            snake.next_direction = RIGHT
-
-        elif event.key == pygame.K_ESCAPE:
+        if event.key == pygame.K_ESCAPE:
             pygame.event.post(pygame.event.Event(pygame.QUIT))
-
-
-def auto_dificult():
-    """Изменение сложности игры в зависимости от очков охоты"""
-    global SCORE
-    """Меняет сложность в зависимости от набранных очков"""
-    if SCORE >= 150:
-        pygame.time.set_timer(GAME_EVENT, 25)
-    elif SCORE >= 100:
-        pygame.time.set_timer(GAME_EVENT, 50)
-    elif SCORE >= 50:
-        pygame.time.set_timer(GAME_EVENT, 100)
-
-
-def wall_collision(snake):
-    """Описание поведения при выходе за границу игрового поля"""
-    for index, position in enumerate(snake.positions):
-        if position[0] > GRID_WIDTH - 1:
-            snake.positions[index] = (0, position[1])
-        if position[0] < 0:
-            snake.positions[index] = (GRID_WIDTH - 1, position[1])
-        if position[1] > GRID_HEIGHT - 1:
-            snake.positions[index] = (position[0], 0)
-        if position[1] < 0:
-            snake.positions[index] = (position[0], GRID_HEIGHT - 1)
-
-
-def apple_collision(snake, apple):
-    """определяет поведение при совпадении головы змеи и яблока"""
-    global SCORE
-    if snake.positions[0] == apple.position:
-        while apple.position in snake.positions:
-            apple.position = apple.randomize_position()
-        snake.check_eated = True
-        SCORE += 10
-
-
-def self_collision(snake):
-    """Проверка если голова змейки ест сама себя"""
-    global SCORE
-    if snake.positions[0] in snake.positions[1:]:
-        snake.reset()
-        SCORE = 0
-        pygame.time.set_timer(GAME_EVENT, 200)
+        snake.next_direction = binded_keys.get(event.key)
 
 
 def main():
@@ -212,19 +199,18 @@ def main():
             if event.type == GAME_EVENT:
                 snake.update_direction()
                 snake.move()
-                apple_collision(snake, apple)
-                self_collision(snake)
-                wall_collision(snake)
-                auto_dificult()
+                snake.apple_collision(apple)
+                snake.self_collision()
+                snake.auto_dificult()
 
             handle_keys(snake, event)
 
-        screen.fill(BOARD_BACKGROUND_COLOR)
         snake.draw()
         apple.draw()
         screen.blit(
             SCORE_FONT.render(
-                f"Очки охоты: {SCORE}", True, BORDER_COLOR), (25, 25)
+                f"Очки охоты: {snake.SCORE}", True,
+                BORDER_COLOR, BOARD_BACKGROUND_COLOR), (25, 25)
         )
 
         pygame.display.update()
