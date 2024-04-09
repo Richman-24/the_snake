@@ -149,7 +149,6 @@ class Snake(GameObject):
 
     def apple_collision(self, apple):
         """определяет поведение при совпадении головы змеи и яблока"""
-        global SCORE
         if self.positions[0] == apple.position:
             while apple.position in self.positions:
                 apple.position = apple.randomize_position()
@@ -158,10 +157,9 @@ class Snake(GameObject):
 
     def self_collision(self):
         """Проверка если голова змейки ест сама себя"""
-        global SCORE
         if self.positions[0] in self.positions[1:]:
             self.reset()
-            SCORE = 0
+            super().SCORE = 0
             pygame.time.set_timer(GAME_EVENT, 200)
 
 
