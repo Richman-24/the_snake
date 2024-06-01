@@ -135,3 +135,7 @@ dmypy.json
 .idea
 
 /test_arch/
+
+the_snake_litvinova.py
+the_snake_david.py
+new_snake.py

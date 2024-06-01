@@ -1,4 +1,6 @@
-﻿from random import randint
+﻿#  Created by Richman24 as part of the YandexPraktikum learning project
+
+from random import randint
 from typing import Tuple
 
 import pygame
@@ -128,9 +130,7 @@ class Snake(GameObject):
         if self.check_eated:
             self.check_eated = False
         else:
-            self.last = self.formating_coord(
-                self.positions.pop()
-            )
+            self.last = self.formating_coord(self.positions.pop())
 
     def get_head_position(self):
         """Возвращает позицию головы змеи"""
@@ -176,7 +176,6 @@ def handle_keys(snake, event):
     if event.type == pygame.QUIT:
         pygame.quit()
         raise SystemExit
-
     elif event.type == pygame.KEYDOWN:
         if event.key == pygame.K_ESCAPE:
             pygame.event.post(pygame.event.Event(pygame.QUIT))
@@ -209,11 +208,14 @@ def main():
         screen.blit(
             SCORE_FONT.render(
                 f"Очки охоты: {snake.SCORE}", True,
-                BORDER_COLOR, BOARD_BACKGROUND_COLOR), (25, 25)
+                BORDER_COLOR, BOARD_BACKGROUND_COLOR
+            ),
+            (25, 25),
         )
 
         pygame.display.update()
 
 
 if __name__ == "__main__":
+    
     main()
